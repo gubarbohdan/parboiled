@@ -35,6 +35,7 @@ import org.parboiled.support.Var;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.parboiled.common.Preconditions.checkArgNotNull;
+import static org.parboiled.transform.TrustedLookupUtils.TRUSTED_LOOKUP;
 
 class AsmUtils {
 
@@ -193,60 +195,37 @@ class AsmUtils {
 
     /**
      * Returns the class with the given name if it has already been loaded by the given class loader.
-     * Otherwise the method returns null.
+     * Otherwise the method throws exception.
      *
      * @param className   the full name of the class to be loaded
-     * @param classLoader the class loader to use
+     * @param parentClass parent class
      * @return the class instance or null
      */
-    public static Class<?> findLoadedClass(String className, ClassLoader classLoader) {
-        checkArgNotNull(className, "className");
-        checkArgNotNull(classLoader, "classLoader");
+    public static Class<?> findLoadedClass(String className, Class<?> parentClass) {
         try {
-            Class<?> classLoaderBaseClass = Class.forName("java.lang.ClassLoader");
-            Method findLoadedClassMethod = classLoaderBaseClass.getDeclaredMethod("findLoadedClass", String.class);
-
-            // protected method invocation
-            findLoadedClassMethod.setAccessible(true);
-            try {
-                return (Class<?>) findLoadedClassMethod.invoke(classLoader, className);
-            } finally {
-                findLoadedClassMethod.setAccessible(false);
-            }
+            final var findClassMethod = Lookup.class.getMethod("findClass", String.class);
+            return (Class<?>) findClassMethod.invoke(TRUSTED_LOOKUP.in(parentClass), className);
         } catch (Exception e) {
-            throw new RuntimeException("Could not determine whether class '" + className +
-                    "' has already been loaded", e);
+            throw new RuntimeException("Could not determine whether class '" + className + "' has already been loaded", e);
         }
     }
 
-    /**
-     * Loads the class defined with the given name and bytecode using the given class loader.
-     * Since package and class idendity includes the ClassLoader instance used to load a class we use reflection
-     * on the given class loader to define generated classes. If we used our own class loader (in order to be able
-     * to access the protected "defineClass" method) we would likely still be able to load generated classes,
-     * however, they would not have access to package-private classes and members of their super classes.
-     *
-     * @param className   the full name of the class to be loaded
-     * @param code        the bytecode of the class to load
-     * @param classLoader the class loader to use
-     * @return the class instance
-     */
-    public static Class<?> loadClass(String className, byte[] code, ClassLoader classLoader) {
-        checkArgNotNull(className, "className");
-        checkArgNotNull(code, "code");
-        checkArgNotNull(classLoader, "classLoader");
+        /**
+         * Loads the class defined with the given name and bytecode using the given class loader.
+         * Since package and class idendity includes the ClassLoader instance used to load a class we use reflection
+         * on the given class loader to define generated classes. If we used our own class loader (in order to be able
+         * to access the protected "defineClass" method) we would likely still be able to load generated classes,
+         * however, they would not have access to package-private classes and members of their super classes.
+         *
+         * @param className   the full name of the class to be loaded
+         * @param code        the bytecode of the class to load
+         * @param parentClass parentClass
+         * @return the class instance
+         */
+    public static Class<?> loadClass(String className, byte[] code, Class<?> parentClass) {
         try {
-            Class<?> classLoaderBaseClass = Class.forName("java.lang.ClassLoader");
-            Method defineClassMethod = classLoaderBaseClass.getDeclaredMethod("defineClass",
-                    String.class, byte[].class, int.class, int.class);
-
-            // protected method invocation
-            defineClassMethod.setAccessible(true);
-            try {
-                return (Class<?>) defineClassMethod.invoke(classLoader, className, code, 0, code.length);
-            } finally {
-                defineClassMethod.setAccessible(false);
-            }
+            final var defineClassMethod = Lookup.class.getMethod("defineClass", byte[].class);
+            return (Class<?>) defineClassMethod.invoke(TRUSTED_LOOKUP.in(parentClass), code);
         } catch (Exception e) {
             throw new RuntimeException("Could not load class '" + className + '\'', e);
         }

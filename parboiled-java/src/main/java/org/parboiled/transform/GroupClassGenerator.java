@@ -54,19 +54,29 @@ abstract class GroupClassGenerator implements RuleMethodProcessor {
     private void loadGroupClass(InstructionGroup group) {
         createGroupClassType(group);
         String className = group.getGroupClassType().getClassName();
-        ClassLoader classLoader = classNode.getParentClass().getClassLoader();
+        Class<?> parentClass = classNode.getParentClass();
 
-        Class<?> groupClass;
         synchronized (lock) {
-            groupClass = findLoadedClass(className, classLoader);
-            if (groupClass == null || forceCodeBuilding) {
-                byte[] groupClassCode = generateGroupClassCode(group);
-                group.setGroupClassCode(groupClassCode);
-                if (groupClass == null) {
-                    loadClass(className, groupClassCode, classLoader);
+            try {
+                findLoadedClass(className, parentClass);
+                if (forceCodeBuilding) {
+                    setGroupClassCode(group);
+                }
+            } catch (Exception e) {
+                final var groupClassCode = setGroupClassCode(group);
+                try {
+                    loadClass(className, groupClassCode, parentClass);
+                } catch (Exception ignore) {
+                    //Ignore
                 }
             }
         }
+    }
+
+    private byte[] setGroupClassCode(InstructionGroup group) {
+        byte[] groupClassCode = generateGroupClassCode(group);
+        group.setGroupClassCode(groupClassCode);
+        return groupClassCode;
     }
 
     private void createGroupClassType(InstructionGroup group) {

@@ -140,8 +140,8 @@ public class ActionTest extends TestNgParboiledTest<Integer> {
                 "    Action$M1hejMpBJ5SjCHvC : B_Action1\n" +
                 "    Action$Qy8BzTl3RpzAzrXV : A_Action1\n" +
                 "    Action$Syt5vvsOCzKOZ8Az : D_Action1\n" +
-                "    Action$esdKf3Sj9cYL9I1s : B_Action2, C_Action1\n" +
-                "    Action$xipkqpZJpsrvOANU : A_Action2\n" +
+                "    Action$XJYfSa8TquM0x3p1 : A_Action2\n" +
+                "    Action$YDRPsLoo5PzOBJDW : B_Action2, C_Action1\n" +
                 "    and 1 anonymous instance(s)\n");
     }
 

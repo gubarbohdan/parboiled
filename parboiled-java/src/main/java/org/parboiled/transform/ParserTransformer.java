@@ -32,11 +32,11 @@ public class ParserTransformer {
     public static synchronized <T> Class<? extends T> transformParser(Class<T> parserClass) throws Exception {
         checkArgNotNull(parserClass, "parserClass");
         // first check whether we did not already create and load the extension of the given parser class
-        Class<?> extendedClass = findLoadedClass(
-                getExtendedParserClassName(parserClass.getName()), parserClass.getClassLoader()
-        );
-        return (Class<? extends T>)
-                (extendedClass != null ? extendedClass : extendParserClass(parserClass).getExtendedClass());
+        try {
+            return (Class<? extends T>) findLoadedClass(getExtendedParserClassName(parserClass.getName()), parserClass);
+        } catch (Exception e) {
+            return (Class<? extends T>) extendParserClass(parserClass).getExtendedClass();
+        }
     }
 
     static ParserClassNode extendParserClass(Class<?> parserClass) throws Exception {
@@ -105,7 +105,7 @@ public class ParserTransformer {
         classNode.setExtendedClass(loadClass(
                 classNode.name.replace('/', '.'),
                 classNode.getClassCode(),
-                classNode.getParentClass().getClassLoader()
+                classNode.getParentClass()
         ));
     }
 
